@@ -64,13 +64,13 @@ frontend/  React + TypeScript + Vite UI
 
 This project includes a Maven Wrapper, so a global Maven install is not required.
 
-The local JDK 21 path used during development was:
+Example JDK 21 path on Windows:
 
 ```powershell
-C:\Program Files\Eclipse Adoptium\jdk-21.0.11.10-hotspot
+C:\Program Files\Eclipse Adoptium\jdk-21.x.x.x-hotspot
 ```
 
-Adjust that path if your JDK 21 installation is somewhere else.
+Adjust that path to match your local JDK 21 installation.
 
 ## Running Locally
 
@@ -79,8 +79,8 @@ Use two PowerShell windows.
 ### 1. Start The Backend
 
 ```powershell
-cd "C:\Users\Jameson\Documents\New project\backend"
-$env:JAVA_HOME='C:\Program Files\Eclipse Adoptium\jdk-21.0.11.10-hotspot'
+cd "C:\Users\your_name\Documents\MTG-Pack-Simulator\backend"
+$env:JAVA_HOME='C:\Program Files\Eclipse Adoptium\jdk-21.x.x.x-hotspot'
 $env:Path="$env:JAVA_HOME\bin;$env:Path"
 .\mvnw.cmd spring-boot:run
 ```
@@ -101,7 +101,7 @@ Stop-Process -Id <PID>
 ### 2. Start The Frontend
 
 ```powershell
-cd "C:\Users\Jameson\Documents\New project\frontend"
+cd "C:\Users\your_name\Documents\MTG-Pack-Simulator\frontend"
 npm.cmd install
 npm.cmd run dev
 ```
@@ -119,8 +119,8 @@ Vite proxies `/api` requests to the backend.
 ### Backend Compile
 
 ```powershell
-cd "C:\Users\Jameson\Documents\New project\backend"
-$env:JAVA_HOME='C:\Program Files\Eclipse Adoptium\jdk-21.0.11.10-hotspot'
+cd "C:\Users\your_name\Documents\MTG-Pack-Simulator\backend"
+$env:JAVA_HOME='C:\Program Files\Eclipse Adoptium\jdk-21.x.x.x-hotspot'
 $env:Path="$env:JAVA_HOME\bin;$env:Path"
 .\mvnw.cmd -DskipTests compile
 ```
@@ -128,7 +128,7 @@ $env:Path="$env:JAVA_HOME\bin;$env:Path"
 ### Frontend Build
 
 ```powershell
-cd "C:\Users\Jameson\Documents\New project\frontend"
+cd "C:\Users\your_name\Documents\MTG-Pack-Simulator\frontend"
 npm.cmd run build
 ```
 
