@@ -19,43 +19,45 @@ import java.util.concurrent.ConcurrentHashMap;
 public class PackOpeningService {
     private static final Logger LOGGER = LoggerFactory.getLogger(PackOpeningService.class);
 
-    private static final String SET_CODE = "blb";
-    private static final double MYTHIC_CHANCE = 0.125;
-    private static final Map<String, String> CARD_POOL_QUERIES = Map.of(
-            "blb:common", "set:blb rarity:common is:booster -type:basic",
-            "blb:uncommon", "set:blb rarity:uncommon is:booster",
-            "blb:rare", "set:blb rarity:rare is:booster",
-            "blb:mythic", "set:blb rarity:mythic is:booster",
-            "blb:land", "set:blb type:basic"
-    );
-
     private final ScryfallClient scryfallClient;
+    private final PackDefinitionService packDefinitionService;
     private final Map<String, List<CardDto>> cardPoolCache = new ConcurrentHashMap<>();
     private final Random random = new Random();
 
-    public PackOpeningService(ScryfallClient scryfallClient) {
+    public PackOpeningService(ScryfallClient scryfallClient, PackDefinitionService packDefinitionService) {
         this.scryfallClient = scryfallClient;
+        this.packDefinitionService = packDefinitionService;
     }
 
     public OpenedPackDto openBloomburrowPack() {
-        List<CardDto> cards = new ArrayList<>();
-        cards.addAll(drawCards("blb:common", 10));
-        cards.addAll(drawCards("blb:uncommon", 3));
+        return openPack("blb");
+    }
 
-        boolean mythic = random.nextDouble() < MYTHIC_CHANCE;
-        cards.add(drawOne(mythic ? "blb:mythic" : "blb:rare"));
-        cards.add(drawOne("blb:land"));
+    public OpenedPackDto openPack(String setCode) {
+        PackDefinition definition = packDefinitionService.getDefinition(setCode);
+        List<CardDto> cards = new ArrayList<>();
+
+        for (PackSlot slot : definition.slots()) {
+            cards.addAll(drawSlot(slot));
+        }
 
         BigDecimal totalValueUsd = cards.stream()
                 .map(CardDto::priceUsd)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
                 .setScale(2, RoundingMode.HALF_UP);
 
-        return new OpenedPackDto(SET_CODE, cards, totalValueUsd);
+        return new OpenedPackDto(definition.setCode(), cards, totalValueUsd);
     }
 
-    private List<CardDto> drawCards(String cacheKey, int count) {
-        List<CardDto> pool = new ArrayList<>(cardPool(cacheKey));
+    private List<CardDto> drawSlot(PackSlot slot) {
+        boolean useAlternatePool = slot.hasAlternatePool() && random.nextDouble() < slot.alternateChance();
+        String cacheKey = useAlternatePool ? slot.alternateCacheKey() : slot.cacheKey();
+        String query = useAlternatePool ? slot.alternateQuery() : slot.query();
+        return drawCards(cacheKey, query, slot.count());
+    }
+
+    private List<CardDto> drawCards(String cacheKey, String query, int count) {
+        List<CardDto> pool = new ArrayList<>(cardPool(cacheKey, query));
         if (pool.size() < count) {
             throw new PackOpeningException("Not enough cards were available for pack slot: " + cacheKey);
         }
@@ -63,16 +65,11 @@ public class PackOpeningService {
         return pool.subList(0, count);
     }
 
-    private List<CardDto> cardPool(String cacheKey) {
-        return cardPoolCache.computeIfAbsent(cacheKey, this::loadCardPool);
+    private List<CardDto> cardPool(String cacheKey, String query) {
+        return cardPoolCache.computeIfAbsent(cacheKey, ignored -> loadCardPool(cacheKey, query));
     }
 
-    private List<CardDto> loadCardPool(String cacheKey) {
-        String query = CARD_POOL_QUERIES.get(cacheKey);
-        if (query == null) {
-            throw new PackOpeningException("Unknown pack slot cache key: " + cacheKey);
-        }
-
+    private List<CardDto> loadCardPool(String cacheKey, String query) {
         LOGGER.info("Loading Scryfall card pool '{}' with query '{}'.", cacheKey, query);
         List<CardDto> cards = scryfallClient.searchCards(query);
         if (cards.isEmpty()) {
@@ -80,9 +77,5 @@ public class PackOpeningService {
         }
         LOGGER.info("Cached {} cards for Scryfall card pool '{}'.", cards.size(), cacheKey);
         return List.copyOf(cards);
-    }
-
-    private CardDto drawOne(String cacheKey) {
-        return drawCards(cacheKey, 1).getFirst();
     }
 }

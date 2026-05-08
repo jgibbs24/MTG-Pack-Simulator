@@ -2,6 +2,7 @@ package com.mtgpacksim.pack;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -20,10 +21,10 @@ public class PackController {
         this.packOpeningService = packOpeningService;
     }
 
-    @GetMapping("/blb/open")
-    public CompletableFuture<ResponseEntity<OpenedPackDto>> openBloomburrowPack() {
+    @GetMapping("/{setCode}/open")
+    public CompletableFuture<ResponseEntity<OpenedPackDto>> openPack(@PathVariable String setCode) {
         return CompletableFuture
-                .supplyAsync(packOpeningService::openBloomburrowPack)
+                .supplyAsync(() -> packOpeningService.openPack(setCode))
                 .orTimeout(PACK_OPENING_TIMEOUT.toSeconds(), TimeUnit.SECONDS)
                 .thenApply(ResponseEntity::ok);
     }

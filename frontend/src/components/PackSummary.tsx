@@ -3,9 +3,10 @@ import type { OpenedPackDto } from '../types/pack';
 type PackSummaryProps = {
   pack: OpenedPackDto | null;
   isLoading: boolean;
+  selectedSetCode: string;
 };
 
-export function PackSummary({ pack, isLoading }: PackSummaryProps) {
+export function PackSummary({ pack, isLoading, selectedSetCode }: PackSummaryProps) {
   const mythics = pack?.cards.filter((card) => card.rarity === 'mythic').length ?? 0;
   const rares = pack?.cards.filter((card) => card.rarity === 'rare').length ?? 0;
 
@@ -22,7 +23,7 @@ export function PackSummary({ pack, isLoading }: PackSummaryProps) {
       <dl className="mt-5 grid grid-cols-2 gap-3 text-sm">
         <div className="rounded-md bg-white/[0.04] p-3">
           <dt className="text-stone-400">Set</dt>
-          <dd className="mt-1 font-semibold uppercase text-white">{pack?.setCode ?? 'BLB'}</dd>
+          <dd className="mt-1 font-semibold uppercase text-white">{pack?.setCode ?? selectedSetCode}</dd>
         </div>
         <div className="rounded-md bg-white/[0.04] p-3">
           <dt className="text-stone-400">Cards</dt>
