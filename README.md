@@ -1,6 +1,6 @@
 # MTG Pack Simulator
 
-A full-stack Magic: The Gathering pack-opening simulator. The app lets you pick a supported set, open a barebones play booster, reveal cards all at once or one by one, and track session stats like pack value, best pull, mythics pulled, and net profit/loss.
+A full-stack Magic: The Gathering pack-opening simulator. The app lets you choose a supported set, move through a small landing/set-selection/opening flow, open a simplified play-booster-style pack, reveal cards all at once or one by one, and track session stats like pack value, best pull, mythics pulled, and net profit/loss.
 
 The project is currently built as a local development monorepo:
 
@@ -9,12 +9,21 @@ backend/   Spring Boot API
 frontend/  React + TypeScript + Vite UI
 ```
 
+Current release tag:
+
+```text
+v1.1.0 - Themed pack selection flow and pack type UI
+```
+
 ## Current Features
 
 - Open MTG packs from a React frontend backed by a Spring Boot API.
 - Live Scryfall integration for card data, images, rarities, and prices.
 - In-memory backend card-pool caching by set and slot, such as `blb:common` and `blb:rare`.
-- Supported set selector powered by `GET /api/sets`.
+- Landing page with a rotating themed pack wrapper preview.
+- Dedicated set-selection screen with set cards.
+- Themed CSS pack wrapper visuals for each supported set.
+- Supported set metadata powered by `GET /api/sets`.
 - Generic pack-opening endpoint: `GET /api/packs/{setCode}/open`.
 - Barebones play-booster style composition:
   - 10 commons
@@ -22,11 +31,20 @@ frontend/  React + TypeScript + Vite UI
   - 1 rare or mythic
   - 1 land
 - Mythic upgrade chance of roughly 12.5%.
+- Frontend pack type selector with:
+  - Play Booster
+  - Collector Booster
+- Collector Booster selection currently changes UI/MSRP only; backend collector booster generation is not implemented yet.
+- Backend set metadata includes MSRP for play boosters.
+- Frontend MSRP display and session spend/profit calculations update from the selected pack type.
 - Reveal modes:
   - Reveal all
   - Cinematic one-by-one reveal stack
+- One-by-one reveal prevents opening a new pack until the current reveal is completed.
 - Click any revealed card to view a larger preview.
 - Rarity-colored hover borders for cards.
+- Session-only binder page showing best pulls.
+- Animated currency values for pack summary and session stats.
 - Frontend-only session stats:
   - Packs opened
   - Total estimated value
@@ -34,7 +52,7 @@ frontend/  React + TypeScript + Vite UI
   - Best card pulled
   - Best pack value
   - Mythics pulled
-  - Net profit/loss using a temporary pack MSRP
+  - Net profit/loss using the selected pack type MSRP
 
 ## Tech Stack
 
@@ -145,7 +163,8 @@ Example response:
   {
     "setCode": "blb",
     "setName": "Bloomburrow",
-    "packType": "play-booster-barebones"
+    "packType": "play-booster-barebones",
+    "msrpUsd": 5.99
   }
 ]
 ```
@@ -183,18 +202,25 @@ Example response:
 - `PackController` exposes pack-opening endpoints.
 - `PackOpeningService` owns pack generation and cache-backed card drawing.
 - `PackDefinitionService` owns the currently supported in-memory pack definitions.
-- `PackDefinition` describes a supported set and pack type.
+- `PackDefinition` describes a supported set, pack type, MSRP, and slots.
 - `PackSlot` describes pack slots like commons, uncommons, rare/mythic, and land.
 - `ScryfallClient` handles Scryfall HTTP calls and maps Scryfall responses into app-level `CardDto` objects.
 - Raw Scryfall JSON is not returned to the frontend.
+- Frontend-only theme metadata and CSS pack wrapper visuals live separately from backend pack definitions.
 
 ## Current Supported Sets
 
 The app is structured for multiple sets. Current definitions include:
 
 - `blb` - Bloomburrow
+- `dsk` - Duskmourn: House of Horror
 - `fdn` - Foundations
+- `lci` - The Lost Caverns of Ixalan
 - `mkm` - Murders at Karlov Manor
+- `mom` - March of the Machine
+- `one` - Phyrexia: All Will Be One
+- `otj` - Outlaws of Thunder Junction
+- `woe` - Wilds of Eldraine
 
 All currently use the same temporary barebones play-booster composition.
 
@@ -203,8 +229,9 @@ All currently use the same temporary barebones play-booster composition.
 - Pack collation is simplified and not yet fully accurate to real MTG booster rules.
 - Foils are not implemented yet.
 - Showcase, borderless, and alternate-art handling are not implemented yet.
-- Collector boosters are not implemented yet.
-- Pack MSRP is currently a frontend constant rather than set-specific backend data.
+- Collector booster selection exists in the frontend, but collector booster pack generation is not implemented yet.
+- Collector booster MSRP is currently frontend metadata.
+- The pack wrapper visuals are CSS-generated placeholders until real wrapper art assets are added.
 - Session stats are frontend state only and reset on refresh.
 - No database yet.
 - No user accounts yet.
@@ -220,23 +247,21 @@ All currently use the same temporary barebones play-booster composition.
 
 ### Pack And Set Accuracy
 
-- Add more sets.
-- Add set-specific pack MSRP.
+- Add real collector booster generation.
+- Add real pack wrapper art assets.
 - Add more accurate play-booster collation.
 - Add foils.
 - Add showcase, borderless, and alternate-art support.
-- Add collector booster support.
-- Add set-specific pack wrappers and theme data.
+- Add set-specific collector booster MSRP and metadata from the backend.
+- Add more sets.
 
 ### User Experience
 
-- Add a landing page with a Play button.
-- Add a dedicated set-selection screen.
-- Move into the main opening screen after set selection.
-- Add a binder page for best pulls during a session.
-- Add animated total value counters.
-- Add pack wrapper art and wrapper-opening animation.
+- Add pack wrapper opening animation.
 - Add mythic pull effects such as particles or confetti.
+- Improve binder sorting/filtering and pull history details.
+- Add session reset controls.
+- Persist selected set, selected pack type, session stats, and binder data in `localStorage`.
 - Improve responsive polish and broader CSS styling.
 
 ### Persistence And Infrastructure
