@@ -30,11 +30,11 @@ public class PackOpeningService {
     }
 
     public OpenedPackDto openBloomburrowPack() {
-        return openPack("blb");
+        return openPack("blb", "play");
     }
 
-    public OpenedPackDto openPack(String setCode) {
-        PackDefinition definition = packDefinitionService.getDefinition(setCode);
+    public OpenedPackDto openPack(String setCode, String boosterType) {
+        PackDefinition definition = packDefinitionService.getDefinition(setCode, boosterType);
         List<CardDto> cards = new ArrayList<>();
 
         for (PackSlot slot : definition.slots()) {
@@ -50,10 +50,18 @@ public class PackOpeningService {
     }
 
     private List<CardDto> drawSlot(PackSlot slot) {
-        boolean useAlternatePool = slot.hasAlternatePool() && random.nextDouble() < slot.alternateChance();
-        String cacheKey = useAlternatePool ? slot.alternateCacheKey() : slot.cacheKey();
-        String query = useAlternatePool ? slot.alternateQuery() : slot.query();
-        return drawCards(cacheKey, query, slot.count());
+        if (!slot.hasAlternatePool()) {
+            return drawCards(slot.cacheKey(), slot.query(), slot.count());
+        }
+
+        List<CardDto> cards = new ArrayList<>();
+        for (int cardIndex = 0; cardIndex < slot.count(); cardIndex++) {
+            boolean useAlternatePool = random.nextDouble() < slot.alternateChance();
+            String cacheKey = useAlternatePool ? slot.alternateCacheKey() : slot.cacheKey();
+            String query = useAlternatePool ? slot.alternateQuery() : slot.query();
+            cards.addAll(drawCards(cacheKey, query, 1));
+        }
+        return cards;
     }
 
     private List<CardDto> drawCards(String cacheKey, String query, int count) {

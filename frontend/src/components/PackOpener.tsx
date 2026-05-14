@@ -49,6 +49,7 @@ export function PackOpener() {
   const [binderCards, setBinderCards] = useState<CardDto[]>([]);
   const [appStep, setAppStep] = useState<AppStep>('start');
   const [boosterTypesBySetCode, setBoosterTypesBySetCode] = useState<Record<string, BoosterType>>({});
+  const [isOpeningWrapper, setIsOpeningWrapper] = useState(false);
   const [landingSetIndex, setLandingSetIndex] = useState(0);
 
   useEffect(() => {
@@ -141,11 +142,20 @@ export function PackOpener() {
 
   async function handleOpenPack() {
     setIsLoading(true);
+    setIsOpeningWrapper(true);
     setError(null);
     setActiveView('opener');
+    setPack(null);
+    setSummaryPack(null);
+    setRevealPhase('idle');
+    setRevealedCount(0);
+    setHasCountedCurrentPack(false);
 
     try {
-      const openedPack = await openPack(selectedSetCode);
+      const [openedPack] = await Promise.all([
+        openPack(selectedSetCode, selectedBoosterType),
+        delay(950),
+      ]);
       setPack(openedPack);
       setRevealedCount(revealMode === 'all' ? openedPack.cards.length : 0);
       setRevealPhase(revealMode === 'all' ? 'complete' : 'revealing');
@@ -160,6 +170,7 @@ export function PackOpener() {
       setError(message);
     } finally {
       setIsLoading(false);
+      setIsOpeningWrapper(false);
     }
   }
 
@@ -384,6 +395,13 @@ export function PackOpener() {
 
           {activeView === 'binder' ? (
             <BinderPage cards={binderCards} onSelectCard={setSelectedCard} />
+          ) : isOpeningWrapper ? (
+            <section className="relative flex min-h-[28rem] items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-[radial-gradient(circle_at_center,rgba(244,184,96,0.14),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.015))] px-6 py-10 shadow-card">
+              <div className="absolute inset-x-10 top-10 h-px bg-gradient-to-r from-transparent via-ember/50 to-transparent" />
+              <div className="pack-wrapper-opening">
+                <PackWrapper boosterType={selectedBoosterType} set={selectedSet} theme={selectedTheme} />
+              </div>
+            </section>
           ) : pack ? (
             isCinematicReveal ? (
               <CardRevealStack cards={displayedCards} onSelectCard={setSelectedCard} />
@@ -438,6 +456,12 @@ function updateSessionStats(
     bestPackValue: Math.max(currentStats.bestPackValue, pack.totalValueUsd),
     mythicsPulled,
   };
+}
+
+function delay(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, milliseconds);
+  });
 }
 
 function getBoosterTypeForSet(

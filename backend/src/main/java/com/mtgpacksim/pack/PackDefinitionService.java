@@ -12,51 +12,76 @@ import java.util.stream.Collectors;
 @Service
 public class PackDefinitionService {
     private static final double MYTHIC_CHANCE = 0.125;
+    private static final double COLLECTOR_MYTHIC_CHANCE = 0.25;
     private static final double DEFAULT_PLAY_BOOSTER_MSRP_USD = 5.99;
-    private static final String PACK_TYPE = "play-booster-barebones";
+    private static final double DEFAULT_COLLECTOR_BOOSTER_MSRP_USD = 24.99;
+    private static final String COLLECTOR_BOOSTER_TYPE = "collector-booster-barebones";
+    private static final String PLAY_BOOSTER = "play";
+    private static final String PLAY_BOOSTER_TYPE = "play-booster-barebones";
 
-    private final Map<String, PackDefinition> definitions;
+    private final Map<String, Map<String, PackDefinition>> definitionsBySetCode;
 
     public PackDefinitionService() {
         List<PackDefinition> supportedDefinitions = List.of(
                 barebonesPlayBooster("blb", "Bloomburrow"),
+                barebonesCollectorBooster("blb", "Bloomburrow"),
                 barebonesPlayBooster("fdn", "Foundations"),
+                barebonesCollectorBooster("fdn", "Foundations"),
                 barebonesPlayBooster("mkm", "Murders at Karlov Manor"),
+                barebonesCollectorBooster("mkm", "Murders at Karlov Manor"),
                 barebonesPlayBooster("dsk", "Duskmourn: House of Horror"),
+                barebonesCollectorBooster("dsk", "Duskmourn: House of Horror"),
                 barebonesPlayBooster("otj", "Outlaws of Thunder Junction"),
+                barebonesCollectorBooster("otj", "Outlaws of Thunder Junction"),
                 barebonesPlayBooster("lci", "The Lost Caverns of Ixalan"),
+                barebonesCollectorBooster("lci", "The Lost Caverns of Ixalan"),
                 barebonesPlayBooster("woe", "Wilds of Eldraine"),
+                barebonesCollectorBooster("woe", "Wilds of Eldraine"),
                 barebonesPlayBooster("mom", "March of the Machine"),
-                barebonesPlayBooster("one", "Phyrexia: All Will Be One")
+                barebonesCollectorBooster("mom", "March of the Machine"),
+                barebonesPlayBooster("one", "Phyrexia: All Will Be One"),
+                barebonesCollectorBooster("one", "Phyrexia: All Will Be One")
         );
 
-        this.definitions = supportedDefinitions.stream()
-                .collect(Collectors.toUnmodifiableMap(PackDefinition::setCode, Function.identity()));
+        this.definitionsBySetCode = supportedDefinitions.stream()
+                .collect(Collectors.groupingBy(
+                        PackDefinition::setCode,
+                        Collectors.toUnmodifiableMap(PackDefinition::boosterType, Function.identity())
+                ));
     }
 
     public List<PackDefinition> supportedDefinitions() {
-        return definitions.values().stream()
+        return definitionsBySetCode.values().stream()
+                .map(definitions -> definitions.get(PLAY_BOOSTER))
                 .sorted((left, right) -> left.setName().compareToIgnoreCase(right.setName()))
                 .toList();
     }
 
-    public PackDefinition getDefinition(String setCode) {
-        return findDefinition(setCode)
-                .orElseThrow(() -> new PackOpeningException("Unsupported set code: " + setCode));
+    public PackDefinition getDefinition(String setCode, String boosterType) {
+        String normalizedBoosterType = normalizeBoosterType(boosterType);
+        return findDefinition(setCode, normalizedBoosterType)
+                .orElseThrow(() -> new PackOpeningException(
+                        "Unsupported pack definition: " + setCode + " / " + normalizedBoosterType
+                ));
     }
 
-    private Optional<PackDefinition> findDefinition(String setCode) {
+    private Optional<PackDefinition> findDefinition(String setCode, String boosterType) {
         if (setCode == null || setCode.isBlank()) {
             return Optional.empty();
         }
-        return Optional.ofNullable(definitions.get(setCode.toLowerCase(Locale.ROOT)));
+        Map<String, PackDefinition> definitions = definitionsBySetCode.get(setCode.toLowerCase(Locale.ROOT));
+        if (definitions == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(definitions.get(boosterType));
     }
 
     private PackDefinition barebonesPlayBooster(String setCode, String setName) {
         return new PackDefinition(
                 setCode,
                 setName,
-                PACK_TYPE,
+                PLAY_BOOSTER_TYPE,
+                PLAY_BOOSTER,
                 DEFAULT_PLAY_BOOSTER_MSRP_USD,
                 List.of(
                         PackSlot.fixed("commons", 10, cacheKey(setCode, "common"), query(setCode, "rarity:common is:booster -type:basic")),
@@ -72,6 +97,37 @@ public class PackDefinitionService {
                         PackSlot.fixed("land", 1, cacheKey(setCode, "land"), query(setCode, "type:basic"))
                 )
         );
+    }
+
+    private PackDefinition barebonesCollectorBooster(String setCode, String setName) {
+        return new PackDefinition(
+                setCode,
+                setName,
+                COLLECTOR_BOOSTER_TYPE,
+                "collector",
+                DEFAULT_COLLECTOR_BOOSTER_MSRP_USD,
+                List.of(
+                        PackSlot.fixed("commons", 4, cacheKey(setCode, "collector-common"), query(setCode, "rarity:common -type:basic")),
+                        PackSlot.fixed("uncommons", 5, cacheKey(setCode, "collector-uncommon"), query(setCode, "rarity:uncommon")),
+                        PackSlot.rareOrMythic(
+                                "rare-or-mythic",
+                                5,
+                                cacheKey(setCode, "collector-rare"),
+                                query(setCode, "rarity:rare"),
+                                cacheKey(setCode, "collector-mythic"),
+                                query(setCode, "rarity:mythic"),
+                                COLLECTOR_MYTHIC_CHANCE
+                        ),
+                        PackSlot.fixed("land", 1, cacheKey(setCode, "collector-land"), query(setCode, "type:basic"))
+                )
+        );
+    }
+
+    private String normalizeBoosterType(String boosterType) {
+        if (boosterType == null || boosterType.isBlank()) {
+            return PLAY_BOOSTER;
+        }
+        return boosterType.toLowerCase(Locale.ROOT);
     }
 
     private String cacheKey(String setCode, String poolName) {

@@ -34,7 +34,7 @@ v1.1.0 - Themed pack selection flow and pack type UI
 - Frontend pack type selector with:
   - Play Booster
   - Collector Booster
-- Collector Booster selection currently changes UI/MSRP only; backend collector booster generation is not implemented yet.
+- Backend pack opening supports `play` and simplified `collector` booster definitions.
 - Backend set metadata includes MSRP for play boosters.
 - Frontend MSRP display and session spend/profit calculations update from the selected pack type.
 - Reveal modes:
@@ -92,9 +92,13 @@ Adjust that path to match your local JDK 21 installation.
 
 ## Running Locally
 
-Use two PowerShell windows.
+Use two terminal windows: one for the backend and one for the frontend.
 
-### 1. Start The Backend
+### Windows
+
+Use PowerShell.
+
+#### 1. Start The Backend
 
 ```powershell
 cd "C:\Users\your_name\Documents\MTG-Pack-Simulator\backend"
@@ -102,6 +106,44 @@ $env:JAVA_HOME='C:\Program Files\Eclipse Adoptium\jdk-21.x.x.x-hotspot'
 $env:Path="$env:JAVA_HOME\bin;$env:Path"
 .\mvnw.cmd spring-boot:run
 ```
+
+#### 2. Start The Frontend
+
+```powershell
+cd "C:\Users\your_name\Documents\MTG-Pack-Simulator\frontend"
+npm.cmd install
+npm.cmd run dev
+```
+
+### macOS / Linux
+
+Use Terminal.
+
+#### 1. Start The Backend
+
+```bash
+cd ~/Documents/MTG-Pack-Simulator/backend
+export JAVA_HOME=$(/usr/libexec/java_home -v 21)
+./mvnw spring-boot:run
+```
+
+If the Maven Wrapper is not executable after cloning:
+
+```bash
+chmod +x ./mvnw
+```
+
+On Linux, set `JAVA_HOME` to your local JDK 21 install path if `java` is not already configured.
+
+#### 2. Start The Frontend
+
+```bash
+cd ~/Documents/MTG-Pack-Simulator/frontend
+npm install
+npm run dev
+```
+
+### Local URLs
 
 The backend runs on:
 
@@ -116,14 +158,6 @@ netstat -ano | findstr :8080
 Stop-Process -Id <PID>
 ```
 
-### 2. Start The Frontend
-
-```powershell
-cd "C:\Users\your_name\Documents\MTG-Pack-Simulator\frontend"
-npm.cmd install
-npm.cmd run dev
-```
-
 The frontend runs on:
 
 ```text
@@ -134,7 +168,7 @@ Vite proxies `/api` requests to the backend.
 
 ## Build And Verification
 
-### Backend Compile
+### Windows Backend Compile
 
 ```powershell
 cd "C:\Users\your_name\Documents\MTG-Pack-Simulator\backend"
@@ -143,11 +177,28 @@ $env:Path="$env:JAVA_HOME\bin;$env:Path"
 .\mvnw.cmd -DskipTests compile
 ```
 
-### Frontend Build
+### Windows Frontend Build
 
 ```powershell
 cd "C:\Users\your_name\Documents\MTG-Pack-Simulator\frontend"
 npm.cmd run build
+```
+
+### macOS / Linux Backend Compile
+
+```bash
+cd ~/Documents/MTG-Pack-Simulator/backend
+export JAVA_HOME=$(/usr/libexec/java_home -v 21)
+./mvnw -DskipTests compile
+```
+
+On Linux, set `JAVA_HOME` to your local JDK 21 install path if needed.
+
+### macOS / Linux Frontend Build
+
+```bash
+cd ~/Documents/MTG-Pack-Simulator/frontend
+npm run build
 ```
 
 ## API Endpoints
@@ -171,12 +222,13 @@ Example response:
 
 ### `GET /api/packs/{setCode}/open`
 
-Opens a pack for the selected set code.
+Opens a pack for the selected set code. The optional `boosterType` query parameter accepts `play` or `collector` and defaults to `play`.
 
 Example:
 
 ```text
 GET /api/packs/blb/open
+GET /api/packs/blb/open?boosterType=collector
 ```
 
 Example response:
@@ -229,7 +281,7 @@ All currently use the same temporary barebones play-booster composition.
 - Pack collation is simplified and not yet fully accurate to real MTG booster rules.
 - Foils are not implemented yet.
 - Showcase, borderless, and alternate-art handling are not implemented yet.
-- Collector booster selection exists in the frontend, but collector booster pack generation is not implemented yet.
+- Collector booster collation is simplified and not yet fully accurate to real collector booster rules.
 - Collector booster MSRP is currently frontend metadata.
 - The pack wrapper visuals are CSS-generated placeholders until real wrapper art assets are added.
 - Session stats are frontend state only and reset on refresh.
@@ -247,7 +299,7 @@ All currently use the same temporary barebones play-booster composition.
 
 ### Pack And Set Accuracy
 
-- Add real collector booster generation.
+- Improve collector booster generation accuracy.
 - Add real pack wrapper art assets.
 - Add more accurate play-booster collation.
 - Add foils.

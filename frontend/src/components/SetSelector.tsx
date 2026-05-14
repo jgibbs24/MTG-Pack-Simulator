@@ -39,7 +39,7 @@ export function SetSelector({
           </button>
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.22em] text-ember">Choose set</p>
-            <h2 className="mt-2 text-3xl font-bold text-white sm:text-4xl">Pick your pack</h2>
+            <h2 className="mt-2 text-3xl font-bold text-white sm:text-4xl">Pick Your Pack</h2>
           </div>
         </div>
         <button
@@ -66,39 +66,36 @@ export function SetSelector({
 
             return (
               <article
-                className={`grid grid-cols-[7rem_minmax(0,1fr)] gap-4 rounded-lg border p-4 text-left shadow-card transition duration-200 hover:-translate-y-1 ${
+                className={`grid cursor-pointer grid-cols-[7rem_minmax(0,1fr)] gap-4 rounded-lg border p-4 text-left shadow-card transition duration-200 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-ember/70 ${
                   isSelected
                     ? 'border-ember bg-white/[0.08]'
                     : 'border-white/10 bg-white/[0.035] hover:border-white/25'
                 }`}
                 key={set.setCode}
+                onClick={() => onSelectedSetChange(set.setCode)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onSelectedSetChange(set.setCode);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
               >
-                <button
-                  aria-label={`Choose ${set.setName}`}
-                  className="text-left focus:outline-none"
-                  onClick={() => onSelectedSetChange(set.setCode)}
-                  type="button"
-                >
+                <div aria-hidden="true">
                   <PackWrapper boosterType={boosterType} set={set} theme={theme} size="compact" />
-                </button>
+                </div>
                 <div className="min-w-0 self-center">
-                  <button
-                    className="block w-full text-left focus:outline-none"
-                    onClick={() => onSelectedSetChange(set.setCode)}
-                    type="button"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="h-2.5 w-2.5 rounded-full"
-                        style={{ backgroundColor: theme.accent }}
-                      />
-                      <span className="text-xs font-bold uppercase tracking-[0.18em] text-stone-400">
-                        {set.setCode}
-                      </span>
-                    </div>
-                    <h3 className="mt-2 line-clamp-2 text-xl font-bold leading-6 text-white">{set.setName}</h3>
-                    <p className="mt-2 text-sm font-semibold text-stone-300">{theme.flavor}</p>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="h-2.5 w-2.5 rounded-full shadow-[0_0_12px_currentColor]"
+                      style={{ backgroundColor: theme.indicator, color: theme.indicator }}
+                    />
+                    <span className="text-xs font-bold uppercase tracking-[0.18em] text-stone-400">
+                      {set.setCode}
+                    </span>
+                  </div>
+                  <h3 className="mt-2 line-clamp-2 text-xl font-bold leading-6 text-white">{set.setName}</h3>
                 </div>
                 <dl className="col-span-2 grid grid-cols-[minmax(0,1fr)_5.5rem] gap-2 text-xs">
                   <div className="rounded-md bg-black/20 p-2">
@@ -112,6 +109,8 @@ export function SetSelector({
                         onSelectedSetChange(set.setCode);
                         onBoosterTypeChange(set.setCode, event.target.value as BoosterType);
                       }}
+                      onClick={(event) => event.stopPropagation()}
+                      onKeyDown={(event) => event.stopPropagation()}
                       value={boosterType}
                     >
                       {BOOSTER_OPTIONS.map((option) => (

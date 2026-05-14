@@ -1,6 +1,7 @@
 export type SetTheme = {
   accent: string;
   background: string;
+  indicator: string;
   flavor: string;
   primary: string;
   secondary: string;
@@ -10,6 +11,7 @@ export type SetTheme = {
 const defaultTheme: SetTheme = {
   accent: '#f4b860',
   background: '#13111c',
+  indicator: '#8b5cf6',
   flavor: 'Play Booster',
   primary: '#8b5cf6',
   secondary: '#3b2d57',
@@ -20,6 +22,7 @@ const setThemes: Record<string, SetTheme> = {
   blb: {
     accent: '#f0c45c',
     background: '#102116',
+    indicator: '#4ade80',
     flavor: 'Woodland Valor',
     primary: '#8fb06a',
     secondary: '#244b35',
@@ -28,6 +31,7 @@ const setThemes: Record<string, SetTheme> = {
   dsk: {
     accent: '#ff6f8c',
     background: '#160f18',
+    indicator: '#f472b6',
     flavor: 'Haunted Rooms',
     primary: '#7d3048',
     secondary: '#2b1425',
@@ -36,6 +40,7 @@ const setThemes: Record<string, SetTheme> = {
   fdn: {
     accent: '#ffd91f',
     background: '#10162b',
+    indicator: '#60a5fa',
     flavor: 'Core Magic',
     primary: '#1f56e5',
     secondary: '#132c8d',
@@ -44,6 +49,7 @@ const setThemes: Record<string, SetTheme> = {
   lci: {
     accent: '#e6c56e',
     background: '#0a241f',
+    indicator: '#2dd4bf',
     flavor: 'Sunken Relics',
     primary: '#0f8c7c',
     secondary: '#123f63',
@@ -52,6 +58,7 @@ const setThemes: Record<string, SetTheme> = {
   mkm: {
     accent: '#ff7a1a',
     background: '#18151a',
+    indicator: '#fb923c',
     flavor: 'Case Files',
     primary: '#6f7685',
     secondary: '#8a3a17',
@@ -60,6 +67,7 @@ const setThemes: Record<string, SetTheme> = {
   mom: {
     accent: '#d9e947',
     background: '#101827',
+    indicator: '#38bdf8',
     flavor: 'Multiverse War',
     primary: '#0d7d96',
     secondary: '#26316f',
@@ -68,6 +76,7 @@ const setThemes: Record<string, SetTheme> = {
   one: {
     accent: '#f35b5f',
     background: '#121217',
+    indicator: '#f87171',
     flavor: 'Oil and Steel',
     primary: '#515160',
     secondary: '#8b1f27',
@@ -76,6 +85,7 @@ const setThemes: Record<string, SetTheme> = {
   otj: {
     accent: '#f4d06f',
     background: '#1b130c',
+    indicator: '#f59e0b',
     flavor: 'Frontier Spoils',
     primary: '#b36d13',
     secondary: '#5d2f0e',
@@ -84,6 +94,7 @@ const setThemes: Record<string, SetTheme> = {
   woe: {
     accent: '#f6a2ff',
     background: '#1b1027',
+    indicator: '#d946ef',
     flavor: 'Storybook Magic',
     primary: '#8b22c8',
     secondary: '#c01768',

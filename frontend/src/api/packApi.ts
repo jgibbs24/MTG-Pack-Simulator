@@ -1,3 +1,4 @@
+import type { BoosterType } from '../packLabels';
 import type { OpenedPackDto, SupportedSetDto } from '../types/pack';
 
 export async function fetchSupportedSets(): Promise<SupportedSetDto[]> {
@@ -14,12 +15,13 @@ export async function fetchSupportedSets(): Promise<SupportedSetDto[]> {
   return response.json();
 }
 
-export async function openPack(setCode: string): Promise<OpenedPackDto> {
+export async function openPack(setCode: string, boosterType: BoosterType): Promise<OpenedPackDto> {
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), 30000);
+  const searchParams = new URLSearchParams({ boosterType });
 
   try {
-    const response = await fetch(`/api/packs/${setCode}/open`, {
+    const response = await fetch(`/api/packs/${setCode}/open?${searchParams.toString()}`, {
       headers: {
         Accept: 'application/json',
       },

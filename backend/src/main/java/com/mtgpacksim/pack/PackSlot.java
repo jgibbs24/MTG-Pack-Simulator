@@ -21,7 +21,19 @@ public record PackSlot(
             String mythicQuery,
             double mythicChance
     ) {
-        return new PackSlot(name, 1, rareCacheKey, rareQuery, mythicCacheKey, mythicQuery, mythicChance);
+        return rareOrMythic(name, 1, rareCacheKey, rareQuery, mythicCacheKey, mythicQuery, mythicChance);
+    }
+
+    public static PackSlot rareOrMythic(
+            String name,
+            int count,
+            String rareCacheKey,
+            String rareQuery,
+            String mythicCacheKey,
+            String mythicQuery,
+            double mythicChance
+    ) {
+        return new PackSlot(name, count, rareCacheKey, rareQuery, mythicCacheKey, mythicQuery, mythicChance);
     }
 
     public boolean hasAlternatePool() {
