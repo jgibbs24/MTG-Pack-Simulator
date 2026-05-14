@@ -4,18 +4,18 @@ import { getSetTheme } from '../setThemes';
 import { PackWrapper } from './PackWrapper';
 
 type SetSelectorProps = {
-  boosterType: BoosterType;
+  boosterTypesBySetCode: Record<string, BoosterType>;
   sets: SupportedSetDto[];
   selectedSetCode: string;
   isLoading: boolean;
   onContinue: () => void;
-  onBoosterTypeChange: (boosterType: BoosterType) => void;
+  onBoosterTypeChange: (setCode: string, boosterType: BoosterType) => void;
   onBack: () => void;
   onSelectedSetChange: (setCode: string) => void;
 };
 
 export function SetSelector({
-  boosterType,
+  boosterTypesBySetCode,
   sets,
   selectedSetCode,
   isLoading,
@@ -25,7 +25,6 @@ export function SetSelector({
   onSelectedSetChange,
 }: SetSelectorProps) {
   const selectedSet = sets.find((set) => set.setCode === selectedSetCode);
-  const selectedBooster = getBoosterOption(boosterType);
 
   return (
     <section className="mx-auto flex w-full max-w-6xl flex-1 flex-col">
@@ -62,6 +61,8 @@ export function SetSelector({
           {sets.map((set) => {
             const theme = getSetTheme(set.setCode);
             const isSelected = set.setCode === selectedSetCode;
+            const boosterType = boosterTypesBySetCode[set.setCode] ?? 'play';
+            const boosterOption = getBoosterOption(boosterType);
 
             return (
               <article
@@ -78,7 +79,7 @@ export function SetSelector({
                   onClick={() => onSelectedSetChange(set.setCode)}
                   type="button"
                 >
-                  <PackWrapper set={set} theme={theme} size="compact" />
+                  <PackWrapper boosterType={boosterType} set={set} theme={theme} size="compact" />
                 </button>
                 <div className="min-w-0 self-center">
                   <button
@@ -109,9 +110,9 @@ export function SetSelector({
                       id={`booster-type-${set.setCode}`}
                       onChange={(event) => {
                         onSelectedSetChange(set.setCode);
-                        onBoosterTypeChange(event.target.value as BoosterType);
+                        onBoosterTypeChange(set.setCode, event.target.value as BoosterType);
                       }}
-                      value={isSelected ? boosterType : selectedBooster.value}
+                      value={boosterType}
                     >
                       {BOOSTER_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -122,7 +123,7 @@ export function SetSelector({
                   </div>
                   <div className="rounded-md bg-black/20 p-2">
                     <dt className="text-stone-500">MSRP</dt>
-                    <dd className="mt-2 font-semibold text-stone-200">${selectedBooster.msrpUsd.toFixed(2)}</dd>
+                    <dd className="mt-2 font-semibold text-stone-200">${boosterOption.msrpUsd.toFixed(2)}</dd>
                   </div>
                 </dl>
               </article>

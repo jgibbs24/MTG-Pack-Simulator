@@ -48,7 +48,7 @@ export function PackOpener() {
   const [activeView, setActiveView] = useState<ActiveView>('opener');
   const [binderCards, setBinderCards] = useState<CardDto[]>([]);
   const [appStep, setAppStep] = useState<AppStep>('start');
-  const [selectedBoosterType, setSelectedBoosterType] = useState<BoosterType>('play');
+  const [boosterTypesBySetCode, setBoosterTypesBySetCode] = useState<Record<string, BoosterType>>({});
   const [landingSetIndex, setLandingSetIndex] = useState(0);
 
   useEffect(() => {
@@ -100,6 +100,8 @@ export function PackOpener() {
   );
   const landingSet = sets.length > 0 ? sets[landingSetIndex % sets.length] : selectedSet;
   const landingTheme = getSetTheme(landingSet?.setCode ?? selectedSetCode);
+  const landingBooster = getBoosterOption(getBoosterTypeForSet(landingSet?.setCode, boosterTypesBySetCode));
+  const selectedBoosterType = getBoosterTypeForSet(selectedSetCode, boosterTypesBySetCode);
   const selectedBooster = getBoosterOption(selectedBoosterType);
   const selectedTheme = getSetTheme(selectedSetCode);
   const themeStyle = {
@@ -126,11 +128,15 @@ export function PackOpener() {
     setSelectedSetCode(setCode);
   }
 
-  function handleBoosterTypeChange(boosterType: BoosterType) {
-    if (boosterType !== selectedBoosterType) {
+  function handleBoosterTypeChange(setCode: string, boosterType: BoosterType) {
+    const currentBoosterType = getBoosterTypeForSet(setCode, boosterTypesBySetCode);
+    if (setCode === selectedSetCode && boosterType !== currentBoosterType) {
       resetCurrentPack();
     }
-    setSelectedBoosterType(boosterType);
+    setBoosterTypesBySetCode((currentTypes) => ({
+      ...currentTypes,
+      [setCode]: boosterType,
+    }));
   }
 
   async function handleOpenPack() {
@@ -197,7 +203,12 @@ export function PackOpener() {
           </div>
 
           <div className="mx-auto">
-            <PackWrapper packTypeLabel={selectedBooster.label} set={landingSet} theme={landingTheme} />
+            <PackWrapper
+              boosterType={getBoosterTypeForSet(landingSet?.setCode, boosterTypesBySetCode)}
+              packTypeLabel={landingBooster.label}
+              set={landingSet}
+              theme={landingTheme}
+            />
           </div>
         </div>
       </section>
@@ -208,7 +219,7 @@ export function PackOpener() {
     return (
       <>
         <SetSelector
-          boosterType={selectedBoosterType}
+          boosterTypesBySetCode={boosterTypesBySetCode}
           isLoading={isLoadingSets}
           onBack={() => setAppStep('start')}
           onBoosterTypeChange={handleBoosterTypeChange}
@@ -232,7 +243,7 @@ export function PackOpener() {
         <div className="min-w-0">
           <div className="mb-6 grid gap-5 rounded-lg border border-white/10 bg-white/[0.04] p-5 shadow-card lg:grid-cols-[13rem_minmax(0,1fr)]">
             <div className="mx-auto lg:mx-0">
-              <PackWrapper set={selectedSet} theme={selectedTheme} size="compact" />
+              <PackWrapper boosterType={selectedBoosterType} set={selectedSet} theme={selectedTheme} size="compact" />
             </div>
             <div className="min-w-0">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -246,7 +257,7 @@ export function PackOpener() {
                       Pack type
                       <select
                         className="mt-1 block min-w-44 rounded-md border border-white/10 bg-stone-950 px-3 py-2 text-sm font-semibold normal-case tracking-normal text-white outline-none transition focus:border-ember"
-                        onChange={(event) => handleBoosterTypeChange(event.target.value as BoosterType)}
+                        onChange={(event) => handleBoosterTypeChange(selectedSetCode, event.target.value as BoosterType)}
                         value={selectedBoosterType}
                       >
                         {BOOSTER_OPTIONS.map((option) => (
@@ -427,6 +438,13 @@ function updateSessionStats(
     bestPackValue: Math.max(currentStats.bestPackValue, pack.totalValueUsd),
     mythicsPulled,
   };
+}
+
+function getBoosterTypeForSet(
+  setCode: string | undefined,
+  boosterTypesBySetCode: Record<string, BoosterType>,
+): BoosterType {
+  return setCode ? boosterTypesBySetCode[setCode] ?? 'play' : 'play';
 }
 
 function findBestCard(cards: CardDto[]): CardDto | null {

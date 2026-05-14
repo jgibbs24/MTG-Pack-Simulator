@@ -1,16 +1,20 @@
 import type { CSSProperties } from 'react';
 import { formatPackType } from '../packLabels';
+import type { BoosterType } from '../packLabels';
+import { getPackWrapperImage } from '../packWrapperImages';
 import type { SupportedSetDto } from '../types/pack';
 import type { SetTheme } from '../setThemes';
 
 type PackWrapperProps = {
+  boosterType?: BoosterType;
   packTypeLabel?: string;
   set: SupportedSetDto | undefined;
   theme: SetTheme;
   size?: 'compact' | 'large';
 };
 
-export function PackWrapper({ packTypeLabel, set, theme, size = 'large' }: PackWrapperProps) {
+export function PackWrapper({ boosterType = 'play', packTypeLabel, set, theme, size = 'large' }: PackWrapperProps) {
+  const wrapperImage = getPackWrapperImage(set?.setCode, boosterType);
   const wrapperStyle = {
     '--wrapper-accent': theme.accent,
     '--wrapper-background': theme.background,
@@ -20,13 +24,33 @@ export function PackWrapper({ packTypeLabel, set, theme, size = 'large' }: PackW
   } as CSSProperties;
 
   const sizeClass = size === 'compact'
-    ? 'h-40 w-28 rounded-lg p-3'
-    : 'h-[25rem] w-[17.5rem] rounded-xl p-5';
+    ? 'h-40 w-28 rounded-lg'
+    : 'h-[25rem] w-[14rem] rounded-xl';
+
+  if (wrapperImage) {
+    return (
+      <div
+        aria-hidden="true"
+        className={`relative isolate overflow-hidden border border-white/15 bg-black/20 shadow-card ${sizeClass}`}
+        style={wrapperStyle}
+      >
+        <img
+          alt=""
+          className="h-full w-full object-contain drop-shadow-2xl"
+          src={wrapperImage.src}
+          style={{
+            objectFit: wrapperImage.fit ?? 'contain',
+            transform: wrapperImage.cropScale ? `scale(${wrapperImage.cropScale})` : undefined,
+          }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div
       aria-hidden="true"
-      className={`relative isolate overflow-hidden border border-white/15 shadow-card ${sizeClass}`}
+      className={`relative isolate overflow-hidden border border-white/15 p-3 shadow-card ${sizeClass}`}
       style={{
         ...wrapperStyle,
         background:
