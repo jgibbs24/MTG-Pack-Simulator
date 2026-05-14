@@ -1,8 +1,9 @@
 import type { BoosterType } from '../packLabels';
 import type { OpenedPackDto, SupportedSetDto } from '../types/pack';
+import { apiUrl } from './apiUrl';
 
 export async function fetchSupportedSets(): Promise<SupportedSetDto[]> {
-  const response = await fetch('/api/sets', {
+  const response = await fetch(apiUrl('/api/sets'), {
     headers: {
       Accept: 'application/json',
     },
@@ -21,7 +22,7 @@ export async function openPack(setCode: string, boosterType: BoosterType): Promi
   const searchParams = new URLSearchParams({ boosterType });
 
   try {
-    const response = await fetch(`/api/packs/${setCode}/open?${searchParams.toString()}`, {
+    const response = await fetch(apiUrl(`/api/packs/${setCode}/open?${searchParams.toString()}`), {
       headers: {
         Accept: 'application/json',
       },

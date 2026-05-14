@@ -22,7 +22,7 @@ v1.1.0 - Themed pack selection flow and pack type UI
 - In-memory backend card-pool caching by set and slot, such as `blb:common` and `blb:rare`.
 - Landing page with a rotating themed pack wrapper preview.
 - Dedicated set-selection screen with set cards.
-- Themed CSS pack wrapper visuals for each supported set.
+- Real pack wrapper image assets for each supported set and booster type.
 - Supported set metadata powered by `GET /api/sets`.
 - Generic pack-opening endpoint: `GET /api/packs/{setCode}/open`.
 - Barebones play-booster style composition:
@@ -166,6 +166,14 @@ http://localhost:5173
 
 Vite proxies `/api` requests to the backend.
 
+For deployed frontend builds, set `VITE_API_BASE_URL` to the backend URL. Local development can leave it blank because the Vite proxy handles `/api` requests.
+
+Example:
+
+```bash
+VITE_API_BASE_URL=https://your-backend.example.com
+```
+
 ## Build And Verification
 
 ### Windows Backend Compile
@@ -184,6 +192,13 @@ cd "C:\Users\your_name\Documents\MTG-Pack-Simulator\frontend"
 npm.cmd run build
 ```
 
+### Windows Frontend Tests
+
+```powershell
+cd "C:\Users\your_name\Documents\MTG-Pack-Simulator\frontend"
+npm.cmd run test
+```
+
 ### macOS / Linux Backend Compile
 
 ```bash
@@ -199,6 +214,25 @@ On Linux, set `JAVA_HOME` to your local JDK 21 install path if needed.
 ```bash
 cd ~/Documents/MTG-Pack-Simulator/frontend
 npm run build
+```
+
+### macOS / Linux Frontend Tests
+
+```bash
+cd ~/Documents/MTG-Pack-Simulator/frontend
+npm run test
+```
+
+### Backend Tests
+
+Use the same Maven Wrapper command style for your platform:
+
+```powershell
+.\mvnw.cmd test
+```
+
+```bash
+./mvnw test
 ```
 
 ## API Endpoints
@@ -283,11 +317,38 @@ All currently use the same temporary barebones play-booster composition.
 - Showcase, borderless, and alternate-art handling are not implemented yet.
 - Collector booster collation is simplified and not yet fully accurate to real collector booster rules.
 - Collector booster MSRP is currently frontend metadata.
-- The pack wrapper visuals are CSS-generated placeholders until real wrapper art assets are added.
 - Session stats are frontend state only and reset on refresh.
 - No database yet.
 - No user accounts yet.
-- No deployment configuration yet.
+- Deployment hosts have not been selected yet.
+
+## Deployment Notes
+
+The frontend and backend can be deployed separately.
+
+- Frontend candidates: Vercel, Netlify, or another static Vite host.
+- Backend candidates: Render, Railway, Fly.io, or another Java/Spring Boot host.
+- Set `VITE_API_BASE_URL` in the frontend host to the deployed backend origin.
+- Set `app.cors.allowed-origins` in the backend environment to the deployed frontend origin.
+- Keep local origins for local development only:
+  - `http://localhost:5173`
+  - `http://127.0.0.1:5173`
+
+Example backend property:
+
+```properties
+app.cors.allowed-origins=https://your-frontend.example.com
+```
+
+If a host exposes environment variables instead of property files, Spring Boot can read the same value from:
+
+```text
+APP_CORS_ALLOWED_ORIGINS=https://your-frontend.example.com
+```
+
+## Disclaimer
+
+This is an unofficial fan project. Magic: The Gathering, set names, card names, card images, pack wrapper art, and related trademarks belong to Wizards of the Coast. Card data and card images are provided through the Scryfall API where applicable. This project is not affiliated with, endorsed by, sponsored by, or approved by Wizards of the Coast or Scryfall.
 
 ## Roadmap / Backlog
 
@@ -300,7 +361,6 @@ All currently use the same temporary barebones play-booster composition.
 ### Pack And Set Accuracy
 
 - Improve collector booster generation accuracy.
-- Add real pack wrapper art assets.
 - Add more accurate play-booster collation.
 - Add foils.
 - Add showcase, borderless, and alternate-art support.
@@ -309,7 +369,8 @@ All currently use the same temporary barebones play-booster composition.
 
 ### User Experience
 
-- Add pack wrapper opening animation.
+- Add fast mode / skip animation controls.
+- Add rarity suspense reveal before card flips.
 - Add mythic pull effects such as particles or confetti.
 - Improve binder sorting/filtering and pull history details.
 - Add session reset controls.
