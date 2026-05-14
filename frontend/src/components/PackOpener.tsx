@@ -1,11 +1,15 @@
+import type { CSSProperties } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { fetchSupportedSets, openPack } from '../api/packApi';
+import { BOOSTER_OPTIONS, type BoosterType, getBoosterOption } from '../packLabels';
+import { getSetTheme } from '../setThemes';
 import type { CardDto, OpenedPackDto, SessionStats, SupportedSetDto } from '../types/pack';
 import { BinderPage } from './BinderPage';
 import { CardGrid } from './CardGrid';
 import { CardPreviewModal } from './CardPreviewModal';
 import { CardRevealStack } from './CardRevealStack';
 import { PackSummary } from './PackSummary';
+import { PackWrapper } from './PackWrapper';
 import { SessionStatsPanel } from './SessionStatsPanel';
 import { SetSelector } from './SetSelector';
 
@@ -14,6 +18,7 @@ const FALLBACK_PACK_MSRP_USD = 5.99;
 type RevealMode = 'all' | 'one-by-one';
 type RevealPhase = 'idle' | 'revealing' | 'complete';
 type ActiveView = 'opener' | 'binder';
+type AppStep = 'start' | 'select-set' | 'open-pack';
 
 const initialSessionStats: SessionStats = {
   packsOpened: 0,
@@ -42,6 +47,9 @@ export function PackOpener() {
   const [summaryPack, setSummaryPack] = useState<OpenedPackDto | null>(null);
   const [activeView, setActiveView] = useState<ActiveView>('opener');
   const [binderCards, setBinderCards] = useState<CardDto[]>([]);
+  const [appStep, setAppStep] = useState<AppStep>('start');
+  const [selectedBoosterType, setSelectedBoosterType] = useState<BoosterType>('play');
+  const [landingSetIndex, setLandingSetIndex] = useState(0);
 
   useEffect(() => {
     let ignore = false;
@@ -74,14 +82,61 @@ export function PackOpener() {
     };
   }, []);
 
+  useEffect(() => {
+    if (sets.length <= 1 || appStep !== 'start') {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setLandingSetIndex((currentIndex) => (currentIndex + 1) % sets.length);
+    }, 3000);
+
+    return () => window.clearInterval(intervalId);
+  }, [appStep, sets.length]);
+
   const selectedSet = useMemo(
     () => sets.find((set) => set.setCode === selectedSetCode),
     [selectedSetCode, sets],
   );
+  const landingSet = sets.length > 0 ? sets[landingSetIndex % sets.length] : selectedSet;
+  const landingTheme = getSetTheme(landingSet?.setCode ?? selectedSetCode);
+  const selectedBooster = getBoosterOption(selectedBoosterType);
+  const selectedTheme = getSetTheme(selectedSetCode);
+  const themeStyle = {
+    '--set-accent': appStep === 'start' ? landingTheme.accent : selectedTheme.accent,
+    '--set-background': appStep === 'start' ? landingTheme.background : selectedTheme.background,
+    '--set-primary': appStep === 'start' ? landingTheme.primary : selectedTheme.primary,
+    '--set-secondary': appStep === 'start' ? landingTheme.secondary : selectedTheme.secondary,
+    '--set-text': appStep === 'start' ? landingTheme.text : selectedTheme.text,
+  } as CSSProperties;
+
+  function resetCurrentPack() {
+    setPack(null);
+    setSummaryPack(null);
+    setRevealPhase('idle');
+    setRevealedCount(0);
+    setHasCountedCurrentPack(false);
+    setActiveView('opener');
+  }
+
+  function handleSelectedSetChange(setCode: string) {
+    if (setCode !== selectedSetCode) {
+      resetCurrentPack();
+    }
+    setSelectedSetCode(setCode);
+  }
+
+  function handleBoosterTypeChange(boosterType: BoosterType) {
+    if (boosterType !== selectedBoosterType) {
+      resetCurrentPack();
+    }
+    setSelectedBoosterType(boosterType);
+  }
 
   async function handleOpenPack() {
     setIsLoading(true);
     setError(null);
+    setActiveView('opener');
 
     try {
       const openedPack = await openPack(selectedSetCode);
@@ -91,7 +146,7 @@ export function PackOpener() {
       setHasCountedCurrentPack(revealMode === 'all');
       if (revealMode === 'all') {
         setSummaryPack(openedPack);
-        setSessionStats((currentStats) => updateSessionStats(currentStats, openedPack, selectedSet?.msrpUsd));
+        setSessionStats((currentStats) => updateSessionStats(currentStats, openedPack, selectedBooster.msrpUsd));
         setBinderCards((currentCards) => updateBinderCards(currentCards, openedPack));
       }
     } catch (caughtError) {
@@ -107,99 +162,189 @@ export function PackOpener() {
     : [];
   const isCinematicReveal = Boolean(pack && revealMode === 'one-by-one' && revealPhase === 'revealing');
   const canAdvanceReveal = Boolean(pack && revealPhase === 'revealing');
+  const isRevealLocked = Boolean(
+    pack && revealMode === 'one-by-one' && revealPhase === 'revealing' && !hasCountedCurrentPack,
+  );
+
+  if (appStep === 'start') {
+    return (
+      <section
+        className="relative flex flex-1 items-center overflow-hidden rounded-lg border border-white/10 bg-stone-950/60 px-6 py-10 shadow-card sm:px-10"
+        style={themeStyle}
+      >
+        <div
+          className="absolute inset-0 -z-0 opacity-70"
+          style={{
+            background:
+              'linear-gradient(135deg, var(--set-background), rgba(255,255,255,0.04) 42%, rgba(0,0,0,0.42)), linear-gradient(90deg, var(--set-primary), transparent 58%)',
+          }}
+        />
+        <div className="relative z-10 grid w-full items-center gap-10 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <div>
+            <h2 className="max-w-3xl text-5xl font-black leading-[0.98] text-white sm:text-6xl lg:text-7xl">
+              Crack the next pack.
+            </h2>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <button
+                className="rounded-md bg-ember px-6 py-3 text-sm font-bold uppercase tracking-[0.18em] text-stone-950 transition hover:-translate-y-0.5 hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+                disabled={isLoadingSets}
+                onClick={() => setAppStep('select-set')}
+                type="button"
+              >
+                {isLoadingSets ? 'Loading...' : 'Play'}
+              </button>
+            </div>
+          </div>
+
+          <div className="mx-auto">
+            <PackWrapper packTypeLabel={selectedBooster.label} set={landingSet} theme={landingTheme} />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (appStep === 'select-set') {
+    return (
+      <>
+        <SetSelector
+          boosterType={selectedBoosterType}
+          isLoading={isLoadingSets}
+          onBack={() => setAppStep('start')}
+          onBoosterTypeChange={handleBoosterTypeChange}
+          onContinue={() => setAppStep('open-pack')}
+          onSelectedSetChange={handleSelectedSetChange}
+          selectedSetCode={selectedSetCode}
+          sets={sets}
+        />
+        {error && (
+          <div className="mt-6 rounded-md border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+            {error}
+          </div>
+        )}
+      </>
+    );
+  }
 
   return (
     <>
-      <div className="grid flex-1 gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+      <div className="grid flex-1 gap-8 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start" style={themeStyle}>
         <div className="min-w-0">
-          <div className="mb-6 flex flex-col gap-4 rounded-lg border border-white/10 bg-white/[0.04] p-5 shadow-card">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="grid gap-4 sm:grid-cols-[minmax(12rem,18rem)_minmax(0,1fr)] sm:items-end">
-                <SetSelector
-                  isLoading={isLoading || isLoadingSets}
-                  onSelectedSetChange={setSelectedSetCode}
-                  selectedSetCode={selectedSetCode}
-                  sets={sets}
-                />
+          <div className="mb-6 grid gap-5 rounded-lg border border-white/10 bg-white/[0.04] p-5 shadow-card lg:grid-cols-[13rem_minmax(0,1fr)]">
+            <div className="mx-auto lg:mx-0">
+              <PackWrapper set={selectedSet} theme={selectedTheme} size="compact" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <h2 className="text-xl font-semibold text-white">{selectedSet?.setName ?? 'Stage 3 pack opener'}</h2>
-                  <p className="mt-1 text-sm text-stone-300">
-                    {selectedSet?.packType ?? 'Loading supported sets...'}
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-stone-500">
+                    {selectedSet?.setCode ?? selectedSetCode}
                   </p>
-                  {selectedSet && (
-                    <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-                      MSRP ${selectedSet.msrpUsd.toFixed(2)}
+                  <h2 className="mt-1 text-2xl font-bold text-white">{selectedSet?.setName ?? 'Pack opener'}</h2>
+                  <div className="mt-2 flex flex-wrap items-end gap-3">
+                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                      Pack type
+                      <select
+                        className="mt-1 block min-w-44 rounded-md border border-white/10 bg-stone-950 px-3 py-2 text-sm font-semibold normal-case tracking-normal text-white outline-none transition focus:border-ember"
+                        onChange={(event) => handleBoosterTypeChange(event.target.value as BoosterType)}
+                        value={selectedBoosterType}
+                      >
+                        {BOOSTER_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <p className="pb-2 text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                      MSRP ${selectedBooster.msrpUsd.toFixed(2)}
                     </p>
-                  )}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    className="rounded-md border border-white/15 bg-white/[0.05] px-4 py-3 text-sm font-bold uppercase tracking-[0.16em] text-stone-100 transition hover:border-white/35 hover:bg-white/10"
+                    onClick={() => setAppStep('start')}
+                    type="button"
+                  >
+                    Home
+                  </button>
+                  <button
+                    className="rounded-md border border-white/15 bg-white/[0.05] px-4 py-3 text-sm font-bold uppercase tracking-[0.16em] text-stone-100 transition hover:border-white/35 hover:bg-white/10"
+                    onClick={() => setAppStep('select-set')}
+                    type="button"
+                  >
+                    Change set
+                  </button>
+                  <button
+                    className="rounded-md bg-ember px-5 py-3 text-sm font-bold uppercase tracking-[0.18em] text-stone-950 transition hover:-translate-y-0.5 hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+                    disabled={isLoading || isLoadingSets || isRevealLocked}
+                    onClick={handleOpenPack}
+                    type="button"
+                  >
+                    {isLoading ? 'Opening...' : 'Open Pack'}
+                  </button>
                 </div>
               </div>
-              <button
-                className="rounded-md bg-ember px-5 py-3 text-sm font-bold uppercase tracking-[0.18em] text-stone-950 transition hover:-translate-y-0.5 hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
-                disabled={isLoading || isLoadingSets}
-                onClick={handleOpenPack}
-                type="button"
-              >
-                {isLoading ? 'Opening...' : 'Open Pack'}
-              </button>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
-              <button
-                className={`rounded-md px-4 py-2 text-sm font-semibold transition ${revealMode === 'all' ? 'bg-amethyst text-white' : 'bg-white/[0.05] text-stone-300 hover:bg-white/10'}`}
-                onClick={() => {
-                  setRevealMode('all');
-                  if (pack) {
-                    setRevealedCount(pack.cards.length);
-                    setRevealPhase('complete');
-                    if (!hasCountedCurrentPack) {
-                      setSummaryPack(pack);
-                      setSessionStats((currentStats) => updateSessionStats(currentStats, pack, selectedSet?.msrpUsd));
-                      setBinderCards((currentCards) => updateBinderCards(currentCards, pack));
-                      setHasCountedCurrentPack(true);
-                    }
-                  }
-                }}
-                type="button"
-              >
-                Reveal all
-              </button>
-              <button
-                className={`rounded-md px-4 py-2 text-sm font-semibold transition ${revealMode === 'one-by-one' ? 'bg-amethyst text-white' : 'bg-white/[0.05] text-stone-300 hover:bg-white/10'}`}
-                onClick={() => {
-                  setRevealMode('one-by-one');
-                  if (pack) {
-                    setRevealedCount(0);
-                    setRevealPhase('revealing');
-                  }
-                }}
-                type="button"
-              >
-                One by one
-              </button>
-              {revealMode === 'one-by-one' && pack && (
+              <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-white/10 pt-4">
                 <button
-                  className="rounded-md border border-ember/40 px-4 py-2 text-sm font-semibold text-ember transition hover:border-ember hover:bg-ember/10 disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={!canAdvanceReveal}
+                  className={`rounded-md px-4 py-2 text-sm font-semibold transition ${revealMode === 'all' ? 'bg-amethyst text-white' : 'bg-white/[0.05] text-stone-300 hover:bg-white/10'}`}
                   onClick={() => {
-                    if (revealedCount >= pack.cards.length) {
+                    setRevealMode('all');
+                    if (pack) {
+                      setRevealedCount(pack.cards.length);
                       setRevealPhase('complete');
                       if (!hasCountedCurrentPack) {
                         setSummaryPack(pack);
-                        setSessionStats((currentStats) => updateSessionStats(currentStats, pack, selectedSet?.msrpUsd));
+                        setSessionStats((currentStats) => updateSessionStats(currentStats, pack, selectedBooster.msrpUsd));
                         setBinderCards((currentCards) => updateBinderCards(currentCards, pack));
                         setHasCountedCurrentPack(true);
                       }
-                      return;
                     }
-                    setRevealedCount((count) => Math.min(count + 1, pack.cards.length));
                   }}
                   type="button"
                 >
-                  {revealedCount >= pack.cards.length
-                    ? 'Continue'
-                    : `Reveal next (${revealedCount}/${pack.cards.length})`}
+                  Reveal all
                 </button>
-              )}
+                <button
+                  className={`rounded-md px-4 py-2 text-sm font-semibold transition ${revealMode === 'one-by-one' ? 'bg-amethyst text-white' : 'bg-white/[0.05] text-stone-300 hover:bg-white/10'}`}
+                  onClick={() => {
+                    setRevealMode('one-by-one');
+                    if (pack) {
+                      setRevealedCount(0);
+                      setRevealPhase('revealing');
+                    }
+                  }}
+                  type="button"
+                >
+                  One by one
+                </button>
+                {revealMode === 'one-by-one' && pack && (
+                  <button
+                    className="rounded-md border border-ember/40 px-4 py-2 text-sm font-semibold text-ember transition hover:border-ember hover:bg-ember/10 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={!canAdvanceReveal}
+                    onClick={() => {
+                      if (revealedCount >= pack.cards.length) {
+                        setRevealPhase('complete');
+                        if (!hasCountedCurrentPack) {
+                          setSummaryPack(pack);
+                          setSessionStats((currentStats) => updateSessionStats(currentStats, pack, selectedBooster.msrpUsd));
+                          setBinderCards((currentCards) => updateBinderCards(currentCards, pack));
+                          setHasCountedCurrentPack(true);
+                        }
+                        return;
+                      }
+                      setRevealedCount((count) => Math.min(count + 1, pack.cards.length));
+                    }}
+                    type="button"
+                  >
+                    {revealedCount >= pack.cards.length
+                      ? 'Continue'
+                      : `Reveal next (${revealedCount}/${pack.cards.length})`}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
