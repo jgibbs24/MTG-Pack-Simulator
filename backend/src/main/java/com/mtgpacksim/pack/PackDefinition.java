@@ -6,6 +6,7 @@ public record PackDefinition(
         String setCode,
         String setName,
         String packType,
+        double msrpUsd,
         List<PackSlot> slots
 ) {
 }

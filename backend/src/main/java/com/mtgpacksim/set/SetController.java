@@ -22,7 +22,8 @@ public class SetController {
                 .map(definition -> new SupportedSetDto(
                         definition.setCode(),
                         definition.setName(),
-                        definition.packType()
+                        definition.packType(),
+                        definition.msrpUsd()
                 ))
                 .toList();
     }

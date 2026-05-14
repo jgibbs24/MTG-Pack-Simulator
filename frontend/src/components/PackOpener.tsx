@@ -10,7 +10,7 @@ import { SessionStatsPanel } from './SessionStatsPanel';
 import { SetSelector } from './SetSelector';
 
 const DEFAULT_SET_CODE = 'blb';
-const PACK_MSRP_USD = 5.99;
+const FALLBACK_PACK_MSRP_USD = 5.99;
 type RevealMode = 'all' | 'one-by-one';
 type RevealPhase = 'idle' | 'revealing' | 'complete';
 type ActiveView = 'opener' | 'binder';
@@ -91,7 +91,7 @@ export function PackOpener() {
       setHasCountedCurrentPack(revealMode === 'all');
       if (revealMode === 'all') {
         setSummaryPack(openedPack);
-        setSessionStats((currentStats) => updateSessionStats(currentStats, openedPack));
+        setSessionStats((currentStats) => updateSessionStats(currentStats, openedPack, selectedSet?.msrpUsd));
         setBinderCards((currentCards) => updateBinderCards(currentCards, openedPack));
       }
     } catch (caughtError) {
@@ -126,6 +126,11 @@ export function PackOpener() {
                   <p className="mt-1 text-sm text-stone-300">
                     {selectedSet?.packType ?? 'Loading supported sets...'}
                   </p>
+                  {selectedSet && (
+                    <p className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                      MSRP ${selectedSet.msrpUsd.toFixed(2)}
+                    </p>
+                  )}
                 </div>
               </div>
               <button
@@ -134,7 +139,7 @@ export function PackOpener() {
                 onClick={handleOpenPack}
                 type="button"
               >
-                {isLoading ? 'Opening...' : `Open ${selectedSetCode.toUpperCase()} Pack`}
+                {isLoading ? 'Opening...' : 'Open Pack'}
               </button>
             </div>
 
@@ -148,7 +153,7 @@ export function PackOpener() {
                     setRevealPhase('complete');
                     if (!hasCountedCurrentPack) {
                       setSummaryPack(pack);
-                      setSessionStats((currentStats) => updateSessionStats(currentStats, pack));
+                      setSessionStats((currentStats) => updateSessionStats(currentStats, pack, selectedSet?.msrpUsd));
                       setBinderCards((currentCards) => updateBinderCards(currentCards, pack));
                       setHasCountedCurrentPack(true);
                     }
@@ -180,7 +185,7 @@ export function PackOpener() {
                       setRevealPhase('complete');
                       if (!hasCountedCurrentPack) {
                         setSummaryPack(pack);
-                        setSessionStats((currentStats) => updateSessionStats(currentStats, pack));
+                        setSessionStats((currentStats) => updateSessionStats(currentStats, pack, selectedSet?.msrpUsd));
                         setBinderCards((currentCards) => updateBinderCards(currentCards, pack));
                         setHasCountedCurrentPack(true);
                       }
@@ -251,10 +256,14 @@ export function PackOpener() {
   );
 }
 
-function updateSessionStats(currentStats: SessionStats, pack: OpenedPackDto): SessionStats {
+function updateSessionStats(
+  currentStats: SessionStats,
+  pack: OpenedPackDto,
+  packMsrpUsd = FALLBACK_PACK_MSRP_USD,
+): SessionStats {
   const packsOpened = currentStats.packsOpened + 1;
   const totalEstimatedValue = currentStats.totalEstimatedValue + pack.totalValueUsd;
-  const totalSpent = packsOpened * PACK_MSRP_USD;
+  const totalSpent = currentStats.totalSpent + packMsrpUsd;
   const netProfitLoss = totalEstimatedValue - totalSpent;
   const mythicsPulled = currentStats.mythicsPulled
     + pack.cards.filter((card) => card.rarity === 'mythic').length;

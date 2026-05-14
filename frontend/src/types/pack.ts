@@ -16,6 +16,7 @@ export type SupportedSetDto = {
   setCode: string;
   setName: string;
   packType: string;
+  msrpUsd: number;
 };
 
 export type SessionStats = {

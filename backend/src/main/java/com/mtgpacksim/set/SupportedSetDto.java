@@ -3,6 +3,7 @@ package com.mtgpacksim.set;
 public record SupportedSetDto(
         String setCode,
         String setName,
-        String packType
+        String packType,
+        double msrpUsd
 ) {
 }

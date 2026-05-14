@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 @Service
 public class PackDefinitionService {
     private static final double MYTHIC_CHANCE = 0.125;
+    private static final double DEFAULT_PLAY_BOOSTER_MSRP_USD = 5.99;
     private static final String PACK_TYPE = "play-booster-barebones";
 
     private final Map<String, PackDefinition> definitions;
@@ -56,6 +57,7 @@ public class PackDefinitionService {
                 setCode,
                 setName,
                 PACK_TYPE,
+                DEFAULT_PLAY_BOOSTER_MSRP_USD,
                 List.of(
                         PackSlot.fixed("commons", 10, cacheKey(setCode, "common"), query(setCode, "rarity:common is:booster -type:basic")),
                         PackSlot.fixed("uncommons", 3, cacheKey(setCode, "uncommon"), query(setCode, "rarity:uncommon is:booster")),
